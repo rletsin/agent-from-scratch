@@ -1,3 +1,12 @@
 {
-  "messages": []
+  "messages": [
+    {
+      "role": "user",
+      "content": "Hello, My name is John Doe"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello John Doe, How can I help you?"
+    }
+  ]
 }
