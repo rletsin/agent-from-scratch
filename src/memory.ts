@@ -46,12 +46,10 @@ export const saveToolResponse = async (
   toolResponse: string
 ) => {
   return await addMessages([
-    { role: 'tool', content: toolResponse, tool_call_id: toolCallId },
+    {
+      role: 'tool',
+      content: toolResponse,
+      tool_call_id: toolCallId,
+    },
   ])
-}
-
-export const clearMessages = async (keepLast?: number) => {
-  const db = await getDb()
-  db.data.messages = db.data.messages.slice(-(keepLast ?? 0))
-  await db.write()
 }

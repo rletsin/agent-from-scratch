@@ -1,18 +1,14 @@
-import type { AIMessage } from '../types'
 import { runLLM } from './llm'
-import { z } from 'zod'
 import { runTool } from './toolRunner'
 import { addMessages, getMessages, saveToolResponse } from './memory'
 import { logMessage, showLoader } from './ui'
 
 export const runAgent = async ({
-  turns = 10,
   userMessage,
-  tools = [],
+  tools,
 }: {
-  turns?: number
   userMessage: string
-  tools?: { name: string; parameters: z.AnyZodObject }[]
+  tools: any[]
 }) => {
   await addMessages([
     {
@@ -22,31 +18,26 @@ export const runAgent = async ({
   ])
 
   const loader = showLoader('Thinking...')
+  const history = await getMessages()
 
-  while (true) {
-    const history = await getMessages()
-    const response = await runLLM({
-      messages: history,
-      tools,
-    })
+  const response = await runLLM({
+    messages: history,
+    tools,
+  })
 
-    await addMessages([response])
+  if (response.tool_calls) {
+    const toolCall = response.tool_calls[0]
+    loader.update(`executing: ${toolCall.function.name}`)
 
-    logMessage(response)
+    const toolResponse = await runTool(toolCall, userMessage)
+    await saveToolResponse(toolCall.id, toolResponse)
 
-    if (response.content) {
-      loader.stop()
-      return getMessages()
-    }
-
-    if (response.tool_calls) {
-      const toolCall = response.tool_calls[0]
-      loader.update(`executing: ${toolCall.function.name}`)
-
-      const toolResponse = await runTool(toolCall, userMessage)
-      await saveToolResponse(toolCall.id, toolResponse)
-
-      loader.update(`executed: ${toolCall.function.name}`)
-    }
+    loader.update(`done: ${toolCall.function.name}`)
   }
+
+  await addMessages([response])
+
+  logMessage(response)
+  loader.stop()
+  return getMessages()
 }
